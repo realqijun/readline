@@ -39,8 +39,8 @@ void	append_history(char *str, t_history **lst)
 		exit(1);
 	}
 	new->line = str;
-  new->tmp = NULL;
-  new->final = false;
+	new->tmp = NULL;
+	new->final = false;
 	new->next = *lst;
 	*lst = new;
 }

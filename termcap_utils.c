@@ -55,12 +55,12 @@ void	clear_scr(void)
 	}
 }
 
-void move_cursor(int row, int col)
+void	move_cursor(int row, int col)
 {
-  char *move = tgetstr("cm", NULL);
-  if (move) {
-    tputs(tgoto(move, col, row), 1, ft_putchar);
-  }
+	char *move = tgetstr("cm", NULL);
+	if (move) {
+		tputs(tgoto(move, col, row), 1, ft_putchar);
+	}
 }
 
 void	clear_line(int row, int col)
@@ -69,6 +69,15 @@ void	clear_line(int row, int col)
 	if (tputs(tgetstr("ce", NULL), 2, ft_putchar) == ERR)
 	{
 		dprintf(2, "Error while clearing the line\n");
+		exit(1);
+	}
+}
+
+void	alert_sound(void)
+{
+	if (tputs(tgetstr("bl", NULL), 1, ft_putchar) == ERR)
+	{
+		dprintf(2, "Error while alerting\n");
 		exit(1);
 	}
 }

@@ -21,21 +21,23 @@
 typedef struct s_history
 {
 	char	*line;
-  char  *tmp;
-  bool  final;
+	char  *tmp;
+	bool  final;
 	struct s_history	*next;
 }	t_history;
 
 typedef struct s_readline_info
 {
-  char  *prompt;
-  int		cur_x;
-  int		cur_y;
-  int   row;
-  int   col;
-  int   pad;
-  struct termios orig_termios;
+	char  *prompt;
+	int		cur_x;
+	int		cur_y;
+	int   row;
+	int   col;
+	int   pad;
+	struct termios orig_termios;
 }	t_readline_info;
+
+char	*ft_readline(char *prompt);
 
 void	push(t_history **a, t_history **b);
 void	append_history(char *str, t_history **lst);
@@ -55,7 +57,8 @@ void	move_cursor(int row, int col);
 void	clear_scr(void);
 void	ft_init_term(void);
 void	clear_line(int row, int col);
+void	alert_sound(void);
 
 /*tab to complete*/
-void	complete_line(char *str);
+void	complete_line(char **str, t_readline_info *rl_info);
 #endif
