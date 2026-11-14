@@ -23,7 +23,7 @@ int ft_putchar(int c)
 	return (0);
 }
 
-char	*append(char *str, char c)
+char	*insert(char *str, char c, size_t pos)
 {
 	char	*new;
 	size_t	len;
@@ -35,11 +35,16 @@ char	*append(char *str, char c)
 		printf("Error while allocating memory\n");
 		exit(1);
 	}
-	strcpy(new, str);
-	new[len] = c;
-	new[len + 1] = '\0';
+	memcpy(new, str, pos);
+	new[pos] = c;
+	strcpy(new + pos + 1, str + pos);
 	free(str);
 	return (new);
+}
+
+char	*append(char *str, char c)
+{
+	return (insert(str, c, strlen(str)));
 }
 
 int ft_iscntrl(int c)
