@@ -30,16 +30,74 @@ void  start(t_readline_info *rl_info)
 	rl_info->pad = 0;
 }
 
-void	print_prompt(t_readline_info* rl_info)
+static char	*prompt_line(char *prompt)
 {
-	rl_info->cur_x = write(1, rl_info->prompt, strlen(rl_info->prompt));
+	char	*nl;
+
+	nl = ft_strrchr(prompt, '\n');
+	if (nl)
+		return (nl + 1);
+	return (prompt);
+}
+
+static int	prompt_width(char *prompt)
+{
+	unsigned char	*s;
+	int				width;
+
+	s = (unsigned char *)prompt_line(prompt);
+	width = 0;
+	while (*s)
+	{
+		if (*s == 27 && s[1] == '[')
+		{
+			s += 2;
+			while (*s && (*s < '@' || *s > '~'))
+				s++;
+		}
+		else if (*s >= ' ' && *s != 127 && (*s & 0xC0) != 0x80)
+			width++;
+		if (*s)
+			s++;
+	}
+	return (width);
+}
+
+static void	move_to(t_readline_info *rl_info, int pos)
+{
+	int	row;
+
+	row = pos / rl_info->col;
+	put_cap("up", rl_info->cur_y - row);
+	put_cap("do", row - rl_info->cur_y);
+	write(1, "\r", 1);
+	put_cap("nd", pos % rl_info->col);
+	rl_info->cur_y = row;
 }
 
 static void	redraw_line(char *line, t_readline_info *rl_info)
 {
-	clear_line(rl_info->cur_y, rl_info->pad);
+	char	*last;
+	int		end;
+
+	last = prompt_line(rl_info->prompt);
+	move_to(rl_info, 0);
+	put_cap("cd", 1);
+	write(1, last, strlen(last));
 	write(1, line, strlen(line));
-	move_cursor(rl_info->cur_y, rl_info->cur_x);
+	end = rl_info->pad + strlen(line);
+	if (end > 0 && end % rl_info->col == 0)
+		write(1, "\r\n", 2);
+	rl_info->cur_y = end / rl_info->col;
+	move_to(rl_info, rl_info->cur_x);
+}
+
+void	print_prompt(t_readline_info* rl_info)
+{
+	write(1, rl_info->prompt, prompt_line(rl_info->prompt) - rl_info->prompt);
+	rl_info->cur_x = rl_info->pad;
+	rl_info->cur_y = 0;
+	redraw_line("", rl_info);
 }
 
 void	backspace(char **line, t_readline_info* rl_info)
@@ -62,20 +120,46 @@ static void	insert_char(char c, char **line, t_readline_info *rl_info)
 	redraw_line(*line, rl_info);
 }
 
+static void	complete(char **line, t_readline_info *rl_info)
+{
+	char	*suffix;
+	int		i;
+
+	suffix = complete_line(*line, rl_info->cur_x - rl_info->pad);
+	if (suffix == NULL)
+	{
+		alert_sound();
+		return ;
+	}
+	i = 0;
+	while (suffix[i])
+	{
+		*line = insert(*line, suffix[i++], rl_info->cur_x - rl_info->pad);
+		rl_info->cur_x++;
+	}
+	free(suffix);
+	redraw_line(*line, rl_info);
+}
+
 void  add_history(t_readline_info *rl_info, t_history **up_history, t_history **down_history, char **line)
 {
+	t_history	*node;
+
+	move_to(rl_info, rl_info->pad + strlen(*line));
 	write(1, "\r\n", 2);
-	rl_info->cur_y++;
-	rl_info->cur_x = 0;
 	if (*down_history != NULL)
 	{
-		free((*down_history)->tmp);
-		(*down_history)->tmp = NULL;
 		while (*down_history)
 			push(down_history, up_history);
+		node = *up_history;
+		while (node)
+		{
+			free(node->tmp);
+			node->tmp = NULL;
+			node = node->next;
+		}
 		push(up_history, down_history);
 		free((*down_history)->line);
-		free((*down_history)->tmp);
 		free(*down_history);
 		*down_history = NULL;
 	}
@@ -105,7 +189,7 @@ void  handle_special_char(int c, char **line, t_readline_info* rl_info)
 		exit(0);
 	}
 	else if (c == 9)
-		complete_line(line, rl_info);
+		complete(line, rl_info);
 	else if (c == 127)
 		backspace(line, rl_info);
 	else if (c == 10 || c == 13)
@@ -139,7 +223,7 @@ void  handle_special_char(int c, char **line, t_readline_info* rl_info)
 			}
 			else if (c == 'C')
 			{
-				if (rl_info->cur_x < 100 - rl_info->pad && rl_info->cur_x < (int)strlen(*line) + rl_info->pad)
+				if (rl_info->cur_x < (int)strlen(*line) + rl_info->pad)
 					rl_info->cur_x++;
 			}
 			else if (c == 'D')
@@ -148,7 +232,7 @@ void  handle_special_char(int c, char **line, t_readline_info* rl_info)
 					rl_info->cur_x--;
 			}
 		}
-		move_cursor(rl_info->cur_y, rl_info->cur_x);
+		move_to(rl_info, rl_info->cur_x);
 	}
 }
 
@@ -177,7 +261,7 @@ char	*ft_readline(char *prompt)
 
 	start(&rl_info);
 	rl_info.prompt = prompt;
-	rl_info.pad = strlen(prompt);
+	rl_info.pad = prompt_width(prompt);
 	clear_scr();
 	print_prompt(&rl_info);
 	line = start_read(&rl_info);

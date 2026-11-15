@@ -54,16 +54,14 @@ void	set_signals(struct termios *orig_termios);
 /*standard utils*/
 int ft_putchar(int c);
 char	*insert(char *str, char c, size_t pos);
-char	*append(char *str, char c);
 int ft_iscntrl(int c);
 
 /*termcap utils*/
-void	move_cursor(int row, int col);
 void	clear_scr(void);
 void	ft_init_term(void);
-void	clear_line(int row, int col);
 void	alert_sound(void);
+void	put_cap(char *cap, int n);
 
 /*tab to complete*/
-void	complete_line(char **str, t_readline_info *rl_info);
+char	*complete_line(char *line, int pos);
 #endif

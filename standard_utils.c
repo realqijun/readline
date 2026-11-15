@@ -42,11 +42,6 @@ char	*insert(char *str, char c, size_t pos)
 	return (new);
 }
 
-char	*append(char *str, char c)
-{
-	return (insert(str, c, strlen(str)));
-}
-
 int ft_iscntrl(int c)
 {
   return (c < 32 || c == 127);

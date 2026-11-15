@@ -13,9 +13,6 @@
 #include "libft/libft.h"
 #include "readline.h"
 #include <dirent.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 #include <stdlib.h>
 
 static char	*next_path(char **path)
@@ -44,164 +41,108 @@ static char	*next_path(char **path)
 	return (ft_substr(start, 0, len));
 }
 
-void	complete_command(char **str, t_readline_info *rl_info)
+static int	find_matches(char *dir_path, char *prefix, char **match)
 {
-	char	*path = getenv("PATH");
-	DIR	*dir;
+	DIR				*dir;
 	struct dirent	*entry;
-	int	possibilities;
-	size_t	len = ft_strlen(*str);
+	int				count;
 
-	possibilities = 0;
-	char	*curr_path = next_path(&path);
-	while (curr_path)
-	{
-		dir = opendir(curr_path);
-		if (dir)
-		{
-			entry = readdir(dir);
-			while (entry)
-			{
-				if (ft_strncmp(entry->d_name, *str, len) == 0)
-					possibilities++;
-				entry = readdir(dir);
-			}
-			closedir(dir);
-		}
-		free(curr_path);
-		curr_path = next_path(NULL);
-	}
-	if (possibilities == 1)
-	{
-		curr_path = next_path(&path);
-		while (curr_path)
-		{
-			dir = opendir(curr_path);
-			if (dir)
-			{
-				entry = readdir(dir);
-				while (entry)
-				{
-					if (ft_strncmp(entry->d_name, *str, len) == 0)
-					{
-						char	*to_write = ft_substr(entry->d_name, len, ft_strlen(entry->d_name) - len);
-						for (int i = 0; to_write[i]; i++)
-						{
-							write(1, &to_write[i], 1);
-							*str = append(*str, to_write[i]);
-							rl_info->cur_x++;
-						}
-						write(1, " ", 1);
-						*str = append(*str, ' ');
-						rl_info->cur_x++;
-						free(to_write);
-						return ;
-					}
-					entry = readdir(dir);
-				}
-				closedir(dir);
-			}
-			free(curr_path);
-			curr_path = next_path(NULL);
-		}
-	}
-	else
-	{
-		write(1, "\a", 1);
-	}
-}
-
-void	write_completed_path(char **str, t_readline_info *rl_info, char *path, char *file)
-{
-	DIR *dir;
-	struct dirent *entry;
-
-	dir = opendir(path);
+	dir = opendir(dir_path);
+	if (dir == NULL)
+		return (0);
+	count = 0;
 	entry = readdir(dir);
 	while (entry)
 	{
-		if (ft_strncmp(entry->d_name, file, ft_strlen(file)) == 0)
+		if (ft_strncmp(entry->d_name, prefix, ft_strlen(prefix)) == 0
+			&& (*match == NULL || ft_strcmp(entry->d_name, *match) != 0))
 		{
-			char	*to_write = ft_substr(entry->d_name, ft_strlen(file), ft_strlen(entry->d_name) - ft_strlen(file));
-			for (int i = 0; to_write[i]; i++)
-			{
-				write(1, &to_write[i], 1);
-				*str = append(*str, to_write[i]);
-				rl_info->cur_x++;
-			}
-			return ;
+			if (*match == NULL)
+				*match = ft_strdup(entry->d_name);
+			count++;
 		}
 		entry = readdir(dir);
 	}
+	closedir(dir);
+	return (count);
 }
 
-void	complete_path(char *str, t_readline_info *rl_info, char **strstr)
+static char	*make_suffix(char *match, size_t len, int count, char *end)
 {
-	int	possibilities = 0;
-	DIR *dir;
-	struct dirent *entry;
-	char	*temp, *path, *file; 
-	if (ft_strchr(str, '/'))
+	char	*suffix;
+
+	suffix = NULL;
+	if (count == 1)
+		suffix = ft_strjoin(match + len, end);
+	free(match);
+	return (suffix);
+}
+
+static char	*complete_command(char *prefix)
+{
+	char	*path;
+	char	*dir;
+	char	*match;
+	int		count;
+
+	match = NULL;
+	count = 0;
+	path = getenv("PATH");
+	dir = next_path(&path);
+	while (dir)
 	{
-		temp = ft_strchr(str, '/');
-		path = ft_substr(str, 0, temp - str);
-		int	x = temp - str + 1;
-		file = ft_substr(str, x, ft_strlen(str) - x);
-		dir = opendir(path);
-		if (dir)
-		{
-			entry = readdir(dir);
-			while (entry)
-			{
-				if (ft_strncmp(entry->d_name, file, ft_strlen(file)) == 0)
-					possibilities++;
-				entry = readdir(dir);
-			}
-			closedir(dir);
-		}
-		if (possibilities == 1)
-			write_completed_path(strstr, rl_info, path, file);
-		else
-			write(1, "\a", 1);
-		free(path);
-		free(file);
+		count += find_matches(dir, prefix, &match);
+		free(dir);
+		dir = next_path(NULL);
+	}
+	return (make_suffix(match, ft_strlen(prefix), count, " "));
+}
+
+static char	*complete_path(char *word)
+{
+	char	*slash;
+	char	*dir;
+	char	*prefix;
+	char	*match;
+	int		count;
+
+	slash = ft_strrchr(word, '/');
+	if (slash)
+	{
+		dir = ft_substr(word, 0, slash - word + 1);
+		prefix = slash + 1;
 	}
 	else
 	{
-		path = ".";
-		file = str;
-		dir = opendir(path);
-		if (dir)
-		{
-			entry = readdir(dir);
-			while (entry)
-			{
-				if (ft_strncmp(entry->d_name, file, ft_strlen(file)) == 0)
-					possibilities++;
-				entry = readdir(dir);
-			}
-			closedir(dir);
-		}
-		if (possibilities == 1)
-			write_completed_path(strstr, rl_info, path, file);
-		else
-			write(1, "\a", 1);
+		dir = ft_strdup(".");
+		prefix = word;
 	}
+	match = NULL;
+	count = find_matches(dir, prefix, &match);
+	free(dir);
+	return (make_suffix(match, ft_strlen(prefix), count, ""));
 }
 
-void	complete_line(char **str, t_readline_info *rl_info)
+char	*complete_line(char *line, int pos)
 {
-	if (ft_strcmp(*str, "") == 0 || (*str)[ft_strlen(*str) - 1] == ' ')
-	{
-		alert_sound();
-		return ;
-	}
-	char	**full_command = ft_split(*str, ' ');
-	int	i = 0;
-	for (; full_command[i + 1]; i++)
-		;
-	if (i == 0)
-		complete_command(str, rl_info);
+	char	*word;
+	char	*suffix;
+	int		start;
+	int		i;
+
+	start = pos;
+	while (start > 0 && line[start - 1] != ' ')
+		start--;
+	if (start == pos)
+		return (NULL);
+	i = 0;
+	while (i < start && line[i] == ' ')
+		i++;
+	word = ft_substr(line, start, pos - start);
+	if (i == start)
+		suffix = complete_command(word);
 	else
-		complete_path(full_command[i], rl_info, str);
+		suffix = complete_path(word);
+	free(word);
+	return (suffix);
 }
