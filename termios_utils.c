@@ -42,7 +42,11 @@ void	get_term_size(int *row, int *col)
 {
 	struct winsize w;
 
-	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1 || w.ws_col == 0)
+	{
+		w.ws_row = 24;
+		w.ws_col = 80;
+	}
 	*row = w.ws_row;
 	*col = w.ws_col;
 }

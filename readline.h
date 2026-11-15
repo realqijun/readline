@@ -15,6 +15,7 @@
 
 # include <termios.h>
 # include <stdbool.h>
+# include <stddef.h>
 
 # define SHELL "zish> "
 
@@ -47,18 +48,20 @@ void	set_rl_term(struct termios *orig_termios);
 void	reset_terminal_mode(struct termios *orig_termios);
 void	get_term_size(int *row, int *col);
 
+/*signal handling*/
+void	set_signals(struct termios *orig_termios);
+
 /*standard utils*/
 int ft_putchar(int c);
-char	*append(char *str, char c);
+char	*insert(char *str, char c, size_t pos);
 int ft_iscntrl(int c);
 
 /*termcap utils*/
-void	move_cursor(int row, int col);
 void	clear_scr(void);
 void	ft_init_term(void);
-void	clear_line(int row, int col);
 void	alert_sound(void);
+void	put_cap(char *cap, int n);
 
 /*tab to complete*/
-void	complete_line(char **str, t_readline_info *rl_info);
+char	*complete_line(char *line, int pos);
 #endif

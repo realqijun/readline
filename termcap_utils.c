@@ -17,10 +17,8 @@
 #include <curses.h>
 #include <term.h>
 
-void	move_cursor(int row, int col);
 void	clear_scr(void);
 void	ft_init_term(void);
-void	clear_line(int row, int col);
 
 void	ft_init_term(void)
 {
@@ -55,22 +53,13 @@ void	clear_scr(void)
 	}
 }
 
-void	move_cursor(int row, int col)
+void	put_cap(char *cap, int n)
 {
-	char *move = tgetstr("cm", NULL);
-	if (move) {
-		tputs(tgoto(move, col, row), 1, ft_putchar);
-	}
-}
+	char	*str;
 
-void	clear_line(int row, int col)
-{
-	move_cursor(row, col);
-	if (tputs(tgetstr("ce", NULL), 2, ft_putchar) == ERR)
-	{
-		dprintf(2, "Error while clearing the line\n");
-		exit(1);
-	}
+	str = tgetstr(cap, NULL);
+	while (n-- > 0)
+		tputs(str, 1, ft_putchar);
 }
 
 void	alert_sound(void)

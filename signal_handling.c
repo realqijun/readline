@@ -13,3 +13,19 @@
 #include "readline.h"
 
 #include <signal.h>
+#include <unistd.h>
+
+static struct termios	g_orig_termios;
+
+static void	handle_sigint(int sig)
+{
+	reset_terminal_mode(&g_orig_termios);
+	signal(sig, SIG_DFL);
+	kill(getpid(), sig);
+}
+
+void	set_signals(struct termios *orig_termios)
+{
+	g_orig_termios = *orig_termios;
+	signal(SIGINT, handle_sigint);
+}
